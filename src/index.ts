@@ -83,27 +83,31 @@ type Message =
   | TypeText
   | GetInteractiveElements;
 
-const clickableItems = [
-  "a",
-  "button",
-  '[ role = "button" ]',
-  'input[type = "button"]',
-  'input[type = "submit"]',
-  'input[type = "reset"]',
-  'input[type = "image"]',
-  "[ onclick ]",
-  '[ tabindex ]: not([ tabindex = "-1" ])',
-  "[ href ]",
-  '[ role = "link" ]',
-  "summary",
-].join(", ");
-
 const getInteractiveElements = async (message: GetInteractiveElements) => {
   const { pageId } = message;
   const page = openPages[pageId];
-  await page.evaluate(() => {
-    return Array.from(document.querySelectorAll(clickableItems));
+  const items = await page.evaluate(() => {
+    // this function will run in the browser context so document will be available
+    const nodes = Array.from(
+      // @ts-ignore
+      document.querySelectorAll(
+        'a, button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], input[type="image"], [onclick], [tabindex]:not([tabindex="-1"]), [href], [role="link"], summary',
+      ),
+    )
+
+    return nodes.map((ele: any) => ({
+      class: ele.className,
+      label: ele.ariaLabel,
+      href: ele.href,
+      text: ele.innerText,
+      id: ele.id,
+      tagName: ele.tagName
+    }));
   });
+
+  return {
+    items,
+  };
 };
 
 const typeText = async (message: TypeText) => {

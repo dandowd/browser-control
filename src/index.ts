@@ -163,11 +163,18 @@ wss.on("connection", (socket, request) => {
   });
 
   socket.on("message", (data) => {
-    const req = JSON.parse(data.toString());
-    console.log(req);
-    messageSwitch(req).then((res) => {
-      socket.send(JSON.stringify(res));
-    });
+    try {
+      const req = JSON.parse(data.toString());
+      console.log(req);
+
+      messageSwitch(req).then((res) => {
+        socket.send(JSON.stringify(res));
+      });
+    } catch (err) {
+      console.error("Could not parse input");
+      // All other error handling should happen lower down, so the only item throwing is the JSON.parse
+      socket.send(JSON.stringify({ error: "Error while parsing JSON" }));
+    }
   });
 });
 

@@ -52,13 +52,64 @@ type GetScreenshot = {
   message: "get_screenshot";
 };
 
+type MoveMouse = {
+  pageId: string;
+  message: "move_mouse";
+  x: number;
+  y: number;
+  click?: boolean;
+};
+
+type TypeText = {
+  pageId: string;
+  message: "type_text";
+  text: string;
+  enter?: boolean;
+};
+
 type Message =
   | CreatePage
   | InputText
   | GetHtml
   | Navigate
   | Click
-  | GetScreenshot;
+  | GetScreenshot
+  | MoveMouse
+  | TypeText;
+
+const typeText = async (message: TypeText) => {
+  const { pageId, text, enter } = message;
+  const page = openPages[pageId];
+
+  try {
+    await page.keyboard.type(text);
+    if (enter) {
+      await page.keyboard.press("Enter");
+    }
+  } catch (err) {
+    console.error(err);
+    return {
+      error: "Could not type",
+    };
+  }
+};
+
+const moveMouse = async (message: MoveMouse) => {
+  const { pageId, x, y, click } = message;
+  const page = openPages[pageId];
+  try {
+    if (click) {
+      await page.mouse.click(x, y);
+    } else {
+      await page.mouse.move(x, y);
+    }
+  } catch (err) {
+    console.log(err);
+    return {
+      error: "Could not move mouse",
+    };
+  }
+};
 
 const click = async (message: Click) => {
   const { pageId, selector } = message;
@@ -115,11 +166,6 @@ const navigate = async (message: Navigate) => {
 
   try {
     await page.goto(url);
-    const html = await page.content();
-
-    return {
-      html,
-    };
   } catch (err) {
     console.error(err);
     return {
@@ -149,6 +195,8 @@ const messageSwitch = async (req: Message) => {
     return { error: "Page with requested pageId not found" };
   }
   switch (req.message) {
+    case "type_text":
+      return typeText(req);
     case "get_screenshot":
       return getScreenshot(req);
     case "create_page":
@@ -161,6 +209,8 @@ const messageSwitch = async (req: Message) => {
       return click(req);
     case "input_text":
       return inputText(req);
+    case "move_mouse":
+      return moveMouse(req);
     default:
       return { error: "No message found" };
   }
@@ -200,7 +250,8 @@ wss.on("connection", (socket, request) => {
       });
     } catch (err) {
       console.error("Could not parse input");
-      // All other error handling should happen lower down, so the only item throwing is the JSON.parse
+      // All other error handling should happen lower down, so the only item
+      // throwing is the JSON.parse
       socket.send(JSON.stringify({ error: "Error while parsing JSON" }));
     }
   });

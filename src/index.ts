@@ -47,7 +47,18 @@ type Click = {
   selector: string;
 };
 
-type Message = CreatePage | InputText | GetHtml | Navigate | Click;
+type GetScreenshot = {
+  pageId: string;
+  message: "get_screenshot";
+};
+
+type Message =
+  | CreatePage
+  | InputText
+  | GetHtml
+  | Navigate
+  | Click
+  | GetScreenshot;
 
 const click = async (message: Click) => {
   const { pageId, selector } = message;
@@ -117,12 +128,29 @@ const navigate = async (message: Navigate) => {
   }
 };
 
+const getScreenshot = async (message: GetScreenshot) => {
+  const page = openPages[message.pageId];
+  try {
+    const data = await page.screenshot({ encoding: "base64" });
+    return {
+      screenshot: data,
+    };
+  } catch (err) {
+    console.error(err);
+    return {
+      error: "Error while taking screenshot",
+    };
+  }
+};
+
 const messageSwitch = async (req: Message) => {
   const page = openPages[req.pageId];
   if (!page) {
     return { error: "Page with requested pageId not found" };
   }
   switch (req.message) {
+    case "get_screenshot":
+      return getScreenshot(req);
     case "create_page":
       return createPage(req);
     case "navigate":

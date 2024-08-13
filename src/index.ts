@@ -48,6 +48,27 @@ type Click = {
 
 type Message = CreatePage | InputText | GetHtml | Navigate | Click;
 
+const click = async (message: Click) => {
+  const { pageId, selector } = message;
+  const page = openPages[pageId];
+
+  try {
+    await page.click(selector);
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return {
+      error: "Error while executing click",
+    };
+  }
+};
+
+const getHtml = (message: GetHtml) => {
+  const page = openPages[message.pageId];
+
+  return page.content();
+};
+
 const createPage = async (message: CreatePage) => {
   if (openPages[message.pageId]) {
     return {
@@ -62,12 +83,6 @@ const createPage = async (message: CreatePage) => {
 const navigate = async (message: Navigate) => {
   const { pageId, url } = message;
   const page = openPages[pageId];
-
-  if (!page) {
-    return {
-      error: "Page with requested pageId not found",
-    };
-  }
 
   try {
     await page.goto(url);
@@ -85,11 +100,19 @@ const navigate = async (message: Navigate) => {
 };
 
 const messageSwitch = async (req: Message) => {
+  const page = openPages[req.pageId];
+  if (!page) {
+    return { error: "Page with requested pageId not found" };
+  }
   switch (req.message) {
     case "create_page":
       return createPage(req);
     case "navigate":
       return navigate(req);
+    case "get_html":
+      return getHtml(req);
+    case "click":
+      return click(req);
     default:
       return { error: "No message found" };
   }

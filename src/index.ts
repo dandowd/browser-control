@@ -11,6 +11,9 @@ let b: Browser;
     browser: "firefox",
     headless: false,
   });
+
+  const pages = await b.pages();
+  openPages["default"] = pages[0];
 })();
 
 type GetHtml = {
@@ -67,8 +70,8 @@ const navigate = async (message: Navigate) => {
   }
 
   try {
-    const res = await page.goto(url);
-    const html = await res?.text();
+    await page.goto(url);
+    const html = await page.content();
 
     return {
       html,
@@ -102,6 +105,12 @@ wss.on("error", (err) => {
 
 wss.on("connection", (socket, request) => {
   console.log("client connecting");
+  if (b) {
+    socket.send(JSON.stringify({ messge: "browser_status", status: "up" }));
+  } else {
+    socket.send(JSON.stringify({ messge: "browser_status", status: "down" }));
+  }
+
   socket.on("open", () => {
     console.log("socket open");
   });

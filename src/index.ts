@@ -67,6 +67,11 @@ type TypeText = {
   enter?: boolean;
 };
 
+type GetInteractiveElements = {
+  message: "get_interactive_elements";
+  pageId: string;
+};
+
 type Message =
   | CreatePage
   | InputText
@@ -75,7 +80,31 @@ type Message =
   | Click
   | GetScreenshot
   | MoveMouse
-  | TypeText;
+  | TypeText
+  | GetInteractiveElements;
+
+const clickableItems = [
+  "a",
+  "button",
+  '[ role = "button" ]',
+  'input[type = "button"]',
+  'input[type = "submit"]',
+  'input[type = "reset"]',
+  'input[type = "image"]',
+  "[ onclick ]",
+  '[ tabindex ]: not([ tabindex = "-1" ])',
+  "[ href ]",
+  '[ role = "link" ]',
+  "summary",
+].join(", ");
+
+const getInteractiveElements = async (message: GetInteractiveElements) => {
+  const { pageId } = message;
+  const page = openPages[pageId];
+  await page.evaluate(() => {
+    return Array.from(document.querySelectorAll(clickableItems));
+  });
+};
 
 const typeText = async (message: TypeText) => {
   const { pageId, text, enter } = message;
@@ -195,6 +224,8 @@ const messageSwitch = async (req: Message) => {
     return { error: "Page with requested pageId not found" };
   }
   switch (req.message) {
+    case "get_interactive_elements":
+      return getInteractiveElements(req);
     case "type_text":
       return typeText(req);
     case "get_screenshot":

@@ -5,8 +5,9 @@ const openPages: Record<string, Page> = {};
 
 let b: Browser;
 (async () => {
-  // I don't want to make sure the browser has successfully launched on every call, so I'm going with this hack.
-  // I think it's alright for the program to crash if something goes wrong
+  // I don't want to make sure the browser has successfully launched on every
+  // call, so I'm going with this hack. I think it's alright for the program to
+  // crash if something goes wrong
   b = await puppeteer.launch({
     browser: "firefox",
     headless: false,
@@ -63,6 +64,23 @@ const click = async (message: Click) => {
   }
 };
 
+const inputText = async (message: InputText) => {
+  const { pageId, selector, text, enter } = message;
+  const page = openPages[pageId];
+
+  try {
+    await page.type(selector, text, { delay: 100 });
+    if (enter) {
+      await page.keyboard.press("Enter");
+    }
+  } catch (err) {
+    console.error(err);
+    return {
+      error: "Error while typing",
+    };
+  }
+};
+
 const getHtml = (message: GetHtml) => {
   const page = openPages[message.pageId];
 
@@ -113,6 +131,8 @@ const messageSwitch = async (req: Message) => {
       return getHtml(req);
     case "click":
       return click(req);
+    case "input_text":
+      return inputText(req);
     default:
       return { error: "No message found" };
   }

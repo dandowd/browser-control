@@ -88,21 +88,25 @@ const getInteractiveElements = async (message: GetInteractiveElements) => {
   const page = openPages[pageId];
   const items = await page.evaluate(() => {
     // this function will run in the browser context so document will be available
-    const nodes = Array.from(
+    return Array.from(
       // @ts-ignore
       document.querySelectorAll(
-        'a, button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], input[type="image"], [onclick], [tabindex]:not([tabindex="-1"]), [href], [role="link"], summary',
+        'a, button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], input[type="image"], [onclick], [tabindex]:not([tabindex="-1"]), [href], [role="link"], summary, input, textarea',
       ),
-    )
-
-    return nodes.map((ele: any) => ({
-      class: ele.className,
-      label: ele.ariaLabel,
-      href: ele.href,
-      text: ele.innerText,
-      id: ele.id,
-      tagName: ele.tagName
-    }));
+    ).map((ele: any, index) => {
+      ele.setAttribute("assign-id", index);
+      return {
+        class: ele.className,
+        label: ele.ariaLabel,
+        href: ele.href,
+        text: ele.innerText,
+        id: ele.id,
+        assigned: `${index}`,
+        tagName: ele.tagName,
+        type: ele.type,
+        value: ele.value
+      };
+    });
   });
 
   return {

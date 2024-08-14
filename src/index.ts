@@ -132,17 +132,20 @@ const getInteractiveElements = async (message: GetInteractiveElements) => {
         'a, button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], input[type="image"], [onclick], [tabindex]:not([tabindex="-1"]), [href], [role="link"], summary, input, textarea',
       ),
     ).map((ele: any, index) => {
-      ele.setAttribute("assign-id", index);
+      ele.setAttribute("assign-id", index.toString());
       return {
+        visible: ele.checkVisibility(),
         class: ele.className,
         label: ele.ariaLabel,
+        description: ele.ariaDescription,
+        role: ele.ariaRoleDescription,
         href: ele.href,
         text: ele.innerText,
         id: ele.id,
         assigned: `${index}`,
         tagName: ele.tagName,
         type: ele.type,
-        value: ele.value
+        value: ele.value,
       };
     });
   });

@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page } from "puppeteer";
+import puppeteer, { Browser, Page, SerializedAXNode } from "puppeteer";
 import { WebSocketServer } from "ws";
 
 const openPages: Record<string, Page> = {};
@@ -72,6 +72,11 @@ type GetInteractiveElements = {
   pageId: string;
 };
 
+type Observe = {
+  message: "observe";
+  pageId: string;
+};
+
 type Message =
   | CreatePage
   | InputText
@@ -81,7 +86,40 @@ type Message =
   | GetScreenshot
   | MoveMouse
   | TypeText
-  | GetInteractiveElements;
+  | GetInteractiveElements
+  | Observe;
+
+const observe = async (message: Observe) => {
+  const page = openPages[message.pageId];
+  const snapshot = await page.accessibility.snapshot();
+  const items: any[] = [];
+
+  console.log(snapshot);
+  const recurseChildren = async (node: SerializedAXNode) => {
+    if (!node.children) {
+      return;
+    }
+
+    items.push({ ...node });
+
+    for (let child of node.children) {
+      recurseChildren(child);
+    }
+  };
+
+  if (!snapshot) {
+    console.error("No snapshot available");
+    return {
+      error: "No snapshot available",
+    };
+  }
+
+  await recurseChildren(snapshot);
+
+  return {
+    snapshot: items,
+  };
+};
 
 const getInteractiveElements = async (message: GetInteractiveElements) => {
   const { pageId } = message;
@@ -232,6 +270,8 @@ const messageSwitch = async (req: Message) => {
     return { error: "Page with requested pageId not found" };
   }
   switch (req.message) {
+    case "observe":
+      return observe(req);
     case "get_interactive_elements":
       return getInteractiveElements(req);
     case "type_text":
